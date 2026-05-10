@@ -21,8 +21,9 @@ variable "hash_key" {
 
 variable "range_key" {
   type        = string
-  default     = ""
-  description = "Table's Range Key."
+  default     = null
+  nullable    = true
+  description = "Table's Range Key. Set to null (or omit) to disable."
 }
 
 variable "billing_mode" {
@@ -55,12 +56,38 @@ variable "enable_point_in_time_recovery" {
   description = "Enable point in time recovery."
 }
 
+variable "enable_streams" {
+  type        = bool
+  default     = true
+  description = "Enable DynamoDB Streams on the table."
+}
+
+variable "stream_view_type" {
+  type        = string
+  default     = "NEW_AND_OLD_IMAGES"
+  description = "Stream view type. One of KEYS_ONLY, NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES."
+}
+
+variable "enable_deletion_protection" {
+  type        = bool
+  default     = true
+  description = "Enable deletion protection on the table."
+}
+
+variable "tags" {
+  type        = map(string)
+  default     = {}
+  description = "Tags to apply to the table. Note: lifecycle.ignore_changes = [tags] is set on the resource, so changes here are applied on create only."
+}
+
 variable "global_secondary_indexes" {
   type = list(object({
-    name      = string
-    hash_key  = string
-    range_key = optional(string)
+    name               = string
+    hash_key           = string
+    range_key          = optional(string)
+    projection_type    = optional(string, "ALL")
+    non_key_attributes = optional(list(string))
   }))
   default     = []
-  description = "List of Global Secondary Index configurations. Each object should contain name, hash_key, and optionally range_key."
+  description = "List of Global Secondary Index configurations. projection_type defaults to ALL; set to INCLUDE with non_key_attributes for narrower projections, or KEYS_ONLY for the smallest projection."
 }
