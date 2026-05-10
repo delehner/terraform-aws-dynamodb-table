@@ -5,11 +5,12 @@ resource "aws_dynamodb_table" "table" {
 
   name                        = "${var.application_name}.${var.table_name}.${var.environment}"
   hash_key                    = var.hash_key
-  range_key                   = var.range_key != "" ? var.range_key : null
+  range_key                   = var.range_key
   billing_mode                = var.billing_mode
-  stream_enabled              = true
-  stream_view_type            = "NEW_AND_OLD_IMAGES"
-  deletion_protection_enabled = true
+  stream_enabled              = var.enable_streams
+  stream_view_type            = var.enable_streams ? var.stream_view_type : null
+  deletion_protection_enabled = var.enable_deletion_protection
+  tags                        = var.tags
 
   point_in_time_recovery {
     enabled = var.enable_point_in_time_recovery
@@ -21,7 +22,7 @@ resource "aws_dynamodb_table" "table" {
   }
 
   dynamic "attribute" {
-    for_each = var.range_key != "" ? [var.range_key] : []
+    for_each = var.range_key != null ? [var.range_key] : []
     content {
       name = attribute.value
       type = "S"
@@ -50,8 +51,8 @@ resource "aws_dynamodb_table" "table" {
       name               = global_secondary_index.value.name
       hash_key           = global_secondary_index.value.hash_key
       range_key          = global_secondary_index.value.range_key
-      projection_type    = "INCLUDE"
-      non_key_attributes = compact([var.hash_key, var.range_key])
+      projection_type    = global_secondary_index.value.projection_type
+      non_key_attributes = global_secondary_index.value.projection_type == "INCLUDE" ? global_secondary_index.value.non_key_attributes : null
     }
   }
 
@@ -74,6 +75,7 @@ resource "aws_dynamodb_table_replica" "replica_table" {
   count = var.replica ? 1 : 0
 
   global_table_arn = var.global_table_arn
+  tags             = var.tags
 
   lifecycle {
     ignore_changes = [
